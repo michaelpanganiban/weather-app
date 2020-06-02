@@ -37,45 +37,33 @@
                 </div>
             </div>
         </div>
-        <div id="myModal" class="modal" v-if="dialog" >
-            <div class="modal-content" >
-                <div class="header">
-                    OTHER DETAILS 
-                </div><hr>
-                <br>
-                <div class="modal-body">
-                    <p style="color: white;"><b>{{this.day}}, {{this.date}}</b></p>
-                    <ul>
-                        <li>Sunrise: {{this.sunrise}}</li>
-                        <li>Sunset: {{this.sunset}}</li>
-                        <hr>
-                    </ul>
-                    <table style="overflow: auto;">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Heat Index</th>
-                                <th>Temperature</th>
-                                <th>Max Temperature</th>
-                                <th>Min Temperature</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr v-bind:key="index" v-for="(i, index) in more_details">
-                                <td v-if="index > 0">{{more_details[index].details.dt_txt}}</td>
-                                <td v-if="index > 0">{{more_details[index].details.main.feels_like}}</td>
-                                <td v-if="index > 0">{{more_details[index].details.main.temp}}° C</td>
-                                <td v-if="index > 0">{{more_details[index].details.main.temp_max}}° C</td>
-                                <td v-if="index > 0">{{more_details[index].details.main.temp_min}}° C</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div><hr>
-                <div>
-                    <button class="btn" @click="dialog = false">Close</button>
-                </div>
-            </div>
-        </div>
+        <b-modal id="modalPopover" size="xl" title="OTHER DETAILS" ok-only v-model="dialog">
+            <b-container fluid>
+                <b-container fluid>
+                    <b-row class="mb-1 text-center">
+                        <b-col cols="3"><b>{{this.day}}, {{this.date}}</b></b-col>
+                        <b-col><b>Sunrise: {{this.sunrise}}</b></b-col>
+                        <b-col><b>Sunset: {{this.sunset}}</b></b-col>
+                    </b-row><hr style="background-color: whitesmoke !important;">
+                    <b-row class="justify-content-md-left" >
+                        <b-col cols="3" v-bind:key="index" v-for="(i, index) in this.more_details" >
+                                <b-col>
+                                    <img :src='`http://openweathermap.org/img/wn/${more_details[index].details.weather[0].icon}@2x.png`' width=90>
+                                </b-col>
+                                <b-col><b>{{more_details[index].details.dt_txt}}</b></b-col>
+                                <b-col>{{more_details[index].details.weather[0].description.charAt(0).toUpperCase() + more_details[index].details.weather[0].description.substring(1)}}</b-col>
+                                <b-col>Wind: {{more_details[index].details.wind.speed}}</b-col><hr>
+
+                                <b-col>Heat Index: {{more_details[index].details.main.feels_like}}° C</b-col>
+                                <b-col>Humidity: {{more_details[index].details.main.humidity}}</b-col>
+                                <b-col>Avg Temperature: {{more_details[index].details.main.temp}}° C</b-col>
+                                <b-col>Max Temperature: {{more_details[index].details.main.temp_max}}° C</b-col>
+                                <b-col>Min Temperature: {{more_details[index].details.main.temp_min}}° C</b-col>
+                        </b-col>
+                    </b-row>
+                </b-container>
+            </b-container>
+        </b-modal>
     </div>
 </template>
 
@@ -88,6 +76,8 @@ export default {
             dialog : false,
             day: '',
             date: '',
+            sunrise: '',
+            sunset:''
         }
     },
     methods: {
@@ -105,20 +95,41 @@ export default {
             }
             return hours+':'+min+' '+mid
         }, //convert time to 12 hour format
+        unixConvertion(unix_timestamp){
+            let date = new Date(unix_timestamp * 1000);
+            let hours = date.getHours();
+            let type = ''
+            if(hours > 12){
+                type = ' PM'
+                hours = hours - 12;
+            }
+            else{
+                type = ' AM'
+            }
+            let minutes = "0" + date.getMinutes();
+            return hours + ':' + minutes.substr(-2) + type;
+        },
+        convertDateTimeUnix(date){
+            return new Date(date)
+        },
         moreDetails(date, day){
             this.$emit('more-details', date)
             this.day = day
             this.date = date
             this.dialog = true
-            console.log(this.more_details)
-            this.sunrise= this.convertDateTime(this.more_details[1].city.sunrise),
-            this.sunset= this.convertDateTime(this.more_details[1].city.sunset)
+            this.sunrise= this.unixConvertion(this.more_details[0].city.sunrise),
+            this.sunset= this.unixConvertion(this.more_details[0].city.sunset)
+    
         } //toggle more details
     }   
 }
 </script>
 
 <style>
+    .modal-content{
+        background-color: #1e202b  !important;
+        color: whitesmoke !important;
+    }
     table {
         table-layout: fixed;
         width: 100%;  
@@ -179,7 +190,7 @@ export default {
     }
     .header{
         background-color: rgb(59, 58, 58);
-        color: whitesmoke;
+        color: whitesmoke !important;
         font-weight: bold;
         padding: 5px 5px 5px 5px;
     }
@@ -196,6 +207,9 @@ export default {
         align: right;
     }
     .header-date{
-        color: whitesmoke;
+        color: whitesmoke !important;
+    }
+    hr{
+        border-color:#656565 !important;
     }
 </style>

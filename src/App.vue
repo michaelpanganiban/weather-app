@@ -1,9 +1,12 @@
 <template>
   <div id="app">
     <Home 
-          v-bind:query = "query" 
+          :query = "query" 
           :daily_weather = "daily_weather"
           :more_details= "more_details"
+          :map_options = "map_options"
+          :options = "options"
+          :places_list = "places_list"
           @clicked="searchNewPlace"
           @more-details="moreDetails"
     />
@@ -22,33 +25,46 @@
       return {
         api_key : 'f30c9b776d93635dee1f2dd0677b1a6f',
         base_url: 'https://api.openweathermap.org/data/2.5/',
+        client_id: 'UZXVICL3UAX3NJAL3NXLOCE5INO4G2XCZP3RXW5EHRLRETDP',
+        client_secret: 'XZL3XGF0GMLHXAJI3KR25UMBLOCUIG3MZSLC0HUI5PYMI0NS',
+        version: '20190425',
+        url: 'https://api.foursquare.com/v2/venues/',
         weather: {},
         error: '',
         query: 'Osaka',
         dates: [],
         daily_weather: [],
         more_details: [],
+        options: [],
+        places_list:[],
+        map_options: {
+            center: { lat: 34.6937, lng: 135.5022 },
+            zoom: 12,
+        },
       }
     },
     created(){
       this.fetchData()
+      this.fetchNearPlaces()
     },
     methods:{
       searchNewPlace(value){
         this.query = value
+        this.places_list = []
         this.fetchData()
+        this.fetchNearPlaces()
       }, //event click function for searching new place
       moreDetails(value){
         Vue.set(this.more_details,0, [])
         let temp_index = 0
         for(let i = 0; i < this.weather.list.length; i++){
           if(this.converDate(this.weather.list[i].dt_txt) == value){
-            temp_index++
             let temp = {
               'details': this.weather.list[i],
               'city': this.weather.city
             }
             Vue.set(this.more_details,temp_index, temp)
+            temp_index++
           }
         }
       }, //event click function for fetching details for the modal
@@ -58,14 +74,40 @@
           return res.json()
         })
         .then(this.manageResults)
-        .catch(e => {
-          console.log(e)
-        })
       }, //fetching of data from the API
+      fetchNearPlaces(){
+        fetch(`${this.url}explore?near=${this.query},&client_id=${this.client_id}&client_secret=${this.client_secret}&v=${this.version}`)
+        .then(res => {
+          return res.json()
+        })
+        .then(this.manageNearPlaces)
+      },
+      manageNearPlaces(places){
+        if(places.meta.code == 200){
+          this.map_options.center.lat = this.weather.city.coord.lat
+          this.map_options.center.lng = this.weather.city.coord.lon
+          for(let i = 0; i < places.response.groups[0].items.length; i++){
+            this.options.push({
+              'lat' : places.response.groups[0].items[i].venue.location.lat,
+              'lng' : places.response.groups[0].items[i].venue.location.lng
+            })
+            this.places_list.push(places.response.groups[0].items[i].venue)
+          }
+        }
+      },
       manageResults(results) {
-        this.weather = results
-        this.dates = this.manageDate()
-        this.daily_weather = this.getNearestTimeOfTheDay()
+        if(results.cod == 200){
+          this.weather = results
+          this.dates = this.manageDate()
+          this.daily_weather = this.getNearestTimeOfTheDay()
+        }
+        else{
+          this.$bvToast.toast('City not found', {
+            title: `Error 404`,
+            variant: 'danger',
+            solid: false
+          })
+        }
       }, //manage results from different functions
       getNearestTimeOfTheDay(){
         let nearest_date, nearest_diff = Infinity
