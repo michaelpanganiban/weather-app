@@ -54,7 +54,7 @@
                         <thead>
                             <tr>
                                 <th>Date</th>
-                                <th>Head Index</th>
+                                <th>Heat Index</th>
                                 <th>Temperature</th>
                                 <th>Max Temperature</th>
                                 <th>Min Temperature</th>
